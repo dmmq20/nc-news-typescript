@@ -1,0 +1,175 @@
+{
+  "GET /api": {
+    "description": "serves up a json representation of all the available endpoints of the api"
+  },
+  "GET /api/topics": {
+    "description": "serves an array of all topics",
+    "queries": [],
+    "exampleResponse": {
+      "topics": [{ "slug": "football", "description": "Footie!" }]
+    }
+  },
+  "POST /api/topics": {
+    "description": "adds a topic to the topics table",
+    "queries": [],
+    "body": { "slug": "food", "description": "yummt things" },
+    "exampleResponse": {
+      "topics": [{ "slug": "football", "description": "Footie!" }]
+    }
+  },
+  "GET /api/articles": {
+    "description": "serves an array of all articles",
+    "queries": ["author", "topic", "sort_by", "order", "p", "limit"],
+    "exampleResponse": {
+      "articles": [
+        {
+          "title": "Seafood substitutions are increasing",
+          "topic": "cooking",
+          "author": "weegembump",
+          "body": "Text from the article..",
+          "created_at": "2018-05-30T15:59:13.341Z",
+          "votes": 0,
+          "comment_count": 6
+        }
+      ]
+    }
+  },
+  "POST /api/articles": {
+    "description": "adds an article and returns article object",
+    "body": {
+      "title": "Seafood substitutions are increasing",
+      "topic": "cooking",
+      "author": "weegembump",
+      "body": "Text from the article..",
+      "article_img_url": "postImgUrl.com"
+    },
+    "exampleResponse": {
+      "article": {
+        "title": "Seafood substitutions are increasing",
+        "topic": "cooking",
+        "author": "weegembump",
+        "body": "Text from the article..",
+        "created_at": "2018-05-30T15:59:13.341Z",
+        "votes": 0,
+        "comment_count": 6,
+        "article_img_url": "postImgUrl.com"
+      }
+    }
+  },
+  "GET /api/articles/:article_id": {
+    "description": "serves a single article",
+    "queries": [],
+    "exampleResponse": {
+      "article": {
+        "title": "Seafood substitutions are increasing",
+        "topic": "cooking",
+        "author": "weegembump",
+        "body": "Text from the article..",
+        "created_at": "2018-05-30T15:59:13.341Z",
+        "votes": 0,
+        "comment_count": 6
+      }
+    }
+  },
+  "DELETE /api/articles/:article_id": {
+    "description": "deletes the resource with article_id if it exists",
+    "exampleResponse": {
+      "status": 200
+    }
+  },
+  "GET /api/articles/:article_id/comments": {
+    "description": "serves an array of comments",
+    "queries": ["p", "limit"],
+    "exampleResponse": {
+      "comments": [
+        {
+          "comment_id": 1,
+          "body": "Text from the comment..",
+          "article_id": 1,
+          "author": "weegembump",
+          "votes": 10,
+          "created_at": "2018-05-30T15:59:13.341Z"
+        }
+      ]
+    }
+  },
+  "POST /api/articles/:article_id/comments": {
+    "description": "Adds a comment to the given article_id if it exists",
+    "queries": [],
+    "body": { "username": "lurker", "body": "test comments" },
+    "exampleResponse": {
+      "comments": [
+        {
+          "comment_id": 1,
+          "body": "Example text from POSTed comment",
+          "article_id": 1,
+          "author": "weegembump",
+          "votes": 10,
+          "created_at": "2018-05-30T15:59:13.341Z"
+        }
+      ]
+    }
+  },
+  "PATCH /api/articles/:article_id": {
+    "description": "Updates votes of the given article_id if it exists",
+    "queries": [],
+    "body": { "inc_votes": 10 },
+    "exampleResponse": {
+      "article": {
+        "title": "Seafood substitutions are increasing",
+        "topic": "cooking",
+        "author": "weegembump",
+        "body": "Text from the article..",
+        "created_at": "2018-05-30T15:59:13.341Z",
+        "votes": 10,
+        "comment_count": 6
+      }
+    },
+    "DELETE /api/comments/:comment_id": {
+      "description": "Deletes the comment associated with comment_id if it exists",
+      "queries": [],
+      "exampleResponse": {
+        "status": 204
+      }
+    },
+    "GET /api/users": {
+      "description": "serves an array of all users",
+      "queries": [],
+      "exampleResponse": {
+        "users": [
+          {
+            "username": "exampleUsername",
+            "name": "exampleName",
+            "avatar_url": "exampleAvatarUrl"
+          }
+        ]
+      }
+    },
+    "GET /api/users/:username": {
+      "description": "responds with a user object if username exists",
+      "queries": [],
+      "exampleResponse": {
+        "users": [
+          {
+            "username": "exampleUsername",
+            "name": "exampleName",
+            "avatar_url": "exampleAvatarUrl"
+          }
+        ]
+      }
+    },
+    "PATCH /api/comments/:comment_id": {
+      "description": "Updates votes of given comment if it exists",
+      "queries": [],
+      "body": { "inc_votes": 10 },
+      "exampleResponse": {
+        "comment": {
+          "body": "example Body",
+          "author": "exampleAuthor",
+          "votes": 20,
+          "created_at": "2020-04-06T12:17:00.000Z"
+        }
+      }
+    }
+  }
+}
