@@ -494,7 +494,7 @@ describe("/api/articles", () => {
         expect(msg).toBe("Bad request");
       });
   });
-  test.only("POST 404: should respond with appropriate status and msg if topic not in topics table", () => {
+  test("POST 404: should respond with appropriate status and msg if topic not in topics table", () => {
     const article = {
       author: "notInUsers",
       title: "test title",
@@ -532,7 +532,7 @@ describe("/api/articles", () => {
         expect(articles).toHaveLength(10);
       });
   });
-  test.only("GET 200: should respond with correct number of articles if limit is specified", () => {
+  test("GET 200: should respond with correct number of articles if limit is specified", () => {
     return request(app)
       .get("/api/articles?limit=5&p=1")
       .expect(200)
@@ -582,285 +582,310 @@ describe("/api/articles", () => {
 });
 
 describe("/api/articles/:article_id/comments", () => {
-  test.only("GET 200: should respond with comments associated with the article_id sorted by date", () => {
-    return (
-      request(app)
-        .get("/api/articles/1/comments")
-        .expect(200)
-        //   .then(({ body: { comments } }) => {
-        .then(({ body }: { body: Body }) => {
-          const comments: CommentWithId[] | undefined = body.comments;
-          expect(comments.length > 0).toBe(true);
-          comments.forEach((comment) => {
-            expect(comment).toMatchObject({
-              article_id: 1,
-              comment_id: expect.any(Number),
-              created_at: expect.any(String),
-              author: expect.any(String),
-              body: expect.any(String),
-              votes: expect.any(Number),
-            });
+  test("GET 200: should respond with comments associated with the article_id sorted by date", () => {
+    return request(app)
+      .get("/api/articles/1/comments")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comments: CommentWithId[] | undefined = body.comments;
+        expect(comments?.length).not.toBe(0);
+        comments?.forEach((comment) => {
+          expect(comment).toMatchObject({
+            article_id: 1,
+            comment_id: expect.any(Number),
+            created_at: expect.any(String),
+            author: expect.any(String),
+            body: expect.any(String),
+            votes: expect.any(Number),
           });
+        });
+        if (comments) {
           expect(isSortedBy(comments, "created_at", { descending: true })).toBe(
             true
           );
-        })
-    );
+        }
+      });
+  });
+  test("GET 200: comments should be sorted by date", () => {
+    return request(app)
+      .get("/api/articles/1/comments")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comments: CommentWithId[] | undefined = body.comments;
+        expect(comments?.length).not.toBe(0);
+        if (comments) {
+          expect(isSortedBy(comments, "created_at", { descending: true })).toBe(
+            true
+          );
+        }
+      });
+  });
+  test("GET 404: should respond with appropriate status and msg if requesting non-existent id", () => {
+    return request(app)
+      .get("/api/articles/99999/comments")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Resource not found");
+      });
+  });
+  test("GET 400: should respond with appropriate status and msg if requesting invalid id", () => {
+    return request(app)
+      .get("/api/articles/notAValidID/comments")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("GET 200: should respond with correct status and empty array if article exists but has no comments", () => {
+    return request(app)
+      .get("/api/articles/13/comments")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comments: CommentWithId[] | undefined = body.comments;
+        expect(comments).toEqual([]);
+      });
+  });
+  test("POST 201: should respond with inserted comment", () => {
+    return request(app)
+      .post("/api/articles/1/comments")
+      .send({ username: "lurker", body: "test comments" })
+      .set("Accept", "application/json")
+      .expect(201)
+      .then(({ body }: { body: Body }) => {
+        const comment: CommentWithId | undefined = body.comment;
+        expect(comment).toMatchObject({
+          article_id: 1,
+          comment_id: expect.any(Number),
+          created_at: expect.any(String),
+          author: "lurker",
+          body: "test comments",
+          votes: expect.any(Number),
+        });
+      });
+  });
+  test("POST 404: should respond with appropriate status and msg when requesting non-existent id", () => {
+    return request(app)
+      .post("/api/articles/999/comments")
+      .send({ username: "lurker", body: "test comments" })
+      .set("Accept", "application/json")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Resource not found");
+      });
+  });
+  test("POST 400: should respond with appropriate status and msg when requesting invalid id", () => {
+    return request(app)
+      .post("/api/articles/invalidId/comments")
+      .send({ username: "lurker", body: "test comments" })
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("POST 404: should respond with appropriate status and msg when request is sent with incorrect user", () => {
+    return request(app)
+      .post("/api/articles/1/comments")
+      .send({ username: "userNotInDb", body: "test comments" })
+      .set("Accept", "application/json")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Not found");
+      });
+  });
+  test("POST 400: should respond with appropriate status and msg when request is sent without body", () => {
+    return request(app)
+      .post("/api/articles/1/comments")
+      .send({ username: "lurker" })
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("GET 200: should respond with correct page with default limit of 10", () => {
+    return request(app)
+      .get("/api/articles/1/comments?p=1")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comments: CommentWithId[] | undefined = body.comments;
+        expect(comments).toHaveLength(10);
+        comments?.forEach((comment) => {
+          expect(comment).toMatchObject({
+            article_id: 1,
+            comment_id: expect.any(Number),
+            created_at: expect.any(String),
+            author: expect.any(String),
+            body: expect.any(String),
+            votes: expect.any(Number),
+          });
+        });
+      });
+  });
+  test("GET 200: should respond with correct page and limit", () => {
+    return request(app)
+      .get("/api/articles/1/comments?p=2&limit=3")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comments: CommentWithId[] | undefined = body.comments;
+        expect(comments).toHaveLength(3);
+      });
+  });
+  test("GET 400: should respond with appropriate status and msg when p query is invalid", () => {
+    return request(app)
+      .get("/api/articles/1/comments?p=invalid")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("GET 400: should respond with appropriate status and msg when limit query is invalid", () => {
+    return request(app)
+      .get("/api/articles/1/comments?limit=invalid")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
   });
 });
-//   test("GET 200: comments should be sorted by date", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments")
-//       .expect(200)
-//       .then(({ body: { comments } }) => {
-//         expect(comments.length > 0).toBe(true);
-//         expect(comments).toBeSortedBy("created_at", { descending: true });
-//       });
-//   });
-//   test("GET 404: should respond with appropriate status and msg if requesting non-existent id", () => {
-//     return request(app)
-//       .get("/api/articles/99999/comments")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Resource not found");
-//       });
-//   });
-//   test("GET 400: should respond with appropriate status and msg if requesting invalid id", () => {
-//     return request(app)
-//       .get("/api/articles/notAValidID/comments")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("GET 200: should respond with correct status and empty array if article exists but has no comments", () => {
-//     return request(app)
-//       .get("/api/articles/13/comments")
-//       .expect(200)
-//       .then(({ body: { comments } }) => {
-//         expect(comments).toEqual([]);
-//       });
-//   });
-//   test("POST 201: should respond with inserted comment", () => {
-//     return request(app)
-//       .post("/api/articles/1/comments")
-//       .send({ username: "lurker", body: "test comments" })
-//       .set("Accept", "application/json")
-//       .expect(201)
-//       .then(({ body: { comment } }) => {
-//         expect(comment).toMatchObject({
-//           article_id: 1,
-//           comment_id: expect.any(Number),
-//           created_at: expect.any(String),
-//           author: "lurker",
-//           body: "test comments",
-//           votes: expect.any(Number),
-//         });
-//       });
-//   });
-//   test("POST 404: should respond with appropriate status and msg when requesting non-existent id", () => {
-//     return request(app)
-//       .post("/api/articles/999/comments")
-//       .send({ username: "lurker", body: "test comments" })
-//       .set("Accept", "application/json")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Resource not found");
-//       });
-//   });
-//   test("POST 400: should respond with appropriate status and msg when requesting invalid id", () => {
-//     return request(app)
-//       .post("/api/articles/invalidId/comments")
-//       .send({ username: "lurker", body: "test comments" })
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("POST 404: should respond with appropriate status and msg when request is sent with incorrect user", () => {
-//     return request(app)
-//       .post("/api/articles/1/comments")
-//       .send({ username: "userNotInDb", body: "test comments" })
-//       .set("Accept", "application/json")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Not found");
-//       });
-//   });
-//   test("POST 400: should respond with appropriate status and msg when request is sent without body", () => {
-//     return request(app)
-//       .post("/api/articles/1/comments")
-//       .send({ username: "lurker" })
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("GET 200: should respond with correct page with default limit of 10", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments?p=1")
-//       .expect(200)
-//       .then(({ body: { comments } }) => {
-//         expect(comments).toHaveLength(10);
-//         comments.forEach((comment) => {
-//           expect(comment).toMatchObject({
-//             article_id: 1,
-//             comment_id: expect.any(Number),
-//             created_at: expect.any(String),
-//             author: expect.any(String),
-//             body: expect.any(String),
-//             votes: expect.any(Number),
-//           });
-//         });
-//       });
-//   });
-//   test("GET 200: should respond with correct page and limit", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments?p=2&limit=3")
-//       .expect(200)
-//       .then(({ body: { comments } }) => {
-//         expect(comments).toHaveLength(3);
-//       });
-//   });
-//   test("GET 400: should respond with appropriate status and msg when p query is invalid", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments?p=invalid")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("GET 400: should respond with appropriate status and msg when limit query is invalid", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments?limit=invalid")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-// });
 
-// describe("/api/comments", () => {
-//   test("DELETE 204: should respond with appropriate status on successful delete", () => {
-//     return request(app).delete("/api/comments/1").expect(204);
-//   });
-//   test("DELETE 400: should respond with appropriate status and msg when trying to delete comment with invalid id", () => {
-//     return request(app)
-//       .delete("/api/comments/notAValidId")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("DELETE 404: should respond with appropriate status and msg when trying to delete comment with non-existent id", () => {
-//     return request(app)
-//       .delete("/api/comments/99999")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Resource not found");
-//       });
-//   });
-// });
+describe("/api/comments", () => {
+  test("DELETE 204: should respond with appropriate status on successful delete", () => {
+    return request(app).delete("/api/comments/1").expect(204);
+  });
+  test("DELETE 400: should respond with appropriate status and msg when trying to delete comment with invalid id", () => {
+    return request(app)
+      .delete("/api/comments/notAValidId")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("DELETE 404: should respond with appropriate status and msg when trying to delete comment with non-existent id", () => {
+    return request(app)
+      .delete("/api/comments/99999")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Resource not found");
+      });
+  });
+});
 
-// describe("/api/users", () => {
-//   test("GET 200: should respond with an array of users", () => {
-//     return request(app)
-//       .get("/api/users")
-//       .expect(200)
-//       .then(({ body: { users } }) => {
-//         expect(users).toHaveLength(4);
-//         users.forEach((user) => {
-//           expect(user).toMatchObject({
-//             username: expect.any(String),
-//             name: expect.any(String),
-//             avatar_url: expect.any(String),
-//           });
-//         });
-//       });
-//   });
-// });
+describe("/api/users", () => {
+  test("GET 200: should respond with an array of users", () => {
+    return request(app)
+      .get("/api/users")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const users = body.users;
+        expect(users).toHaveLength(4);
+        users?.forEach((user) => {
+          expect(user).toMatchObject({
+            username: expect.any(String),
+            name: expect.any(String),
+            avatar_url: expect.any(String),
+          });
+        });
+      });
+  });
+});
 
-// describe("/api/users/:username", () => {
-//   test("GET 200: should respond with user object", () => {
-//     return request(app)
-//       .get("/api/users/lurker")
-//       .expect(200)
-//       .then(({ body: { user } }) => {
-//         expect(user).toMatchObject({
-//           username: "lurker",
-//           name: "do_nothing",
-//           avatar_url:
-//             "https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png",
-//         });
-//       });
-//   });
-//   test("GET 404: should respond with appropriate status and error when requesting invalid username", () => {
-//     return request(app)
-//       .get("/api/users/IDontExist")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Resource not found");
-//       });
-//   });
-// });
+describe("/api/users/:username", () => {
+  test("GET 200: should respond with user object", () => {
+    return request(app)
+      .get("/api/users/lurker")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const user = body.user;
+        expect(user).toMatchObject({
+          username: "lurker",
+          name: "do_nothing",
+          avatar_url:
+            "https://www.golenbock.com/wp-content/uploads/2015/01/placeholder-user.png",
+        });
+      });
+  });
+  test("GET 404: should respond with appropriate status and error when requesting invalid username", () => {
+    return request(app)
+      .get("/api/users/IDontExist")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Resource not found");
+      });
+  });
+});
 
-// describe("/api/comments/:comment_id", () => {
-//   test("PATCH 200: should return correct status and updated message", () => {
-//     return request(app)
-//       .patch("/api/comments/1")
-//       .send({ inc_votes: 10 })
-//       .set("Accept", "application/json")
-//       .expect(200)
-//       .then(({ body: { comment } }) => {
-//         expect(comment).toMatchObject({
-//           comment_id: 1,
-//           body: "Oh, I've got compassion running out of my nose, pal! I'm the Sultan of Sentiment!",
-//           votes: 26,
-//           author: "butter_bridge",
-//           created_at: expect.any(String),
-//         });
-//       });
-//   });
-//   test("PATCH 400: should respond with appropriate status and error when requesting invalid id", () => {
-//     return request(app)
-//       .patch("/api/comments/notAValidId")
-//       .send({ inc_votes: 10 })
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("PATCH 400: should respond with appropriate status and error when request body has invalid key", () => {
-//     return request(app)
-//       .patch("/api/comments/notAValidId")
-//       .send({ notValidKey: 10 })
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("PATCH 400: should respond with appropriate status and error when request body is empty", () => {
-//     return request(app)
-//       .patch("/api/comments/notAValidId")
-//       .send({})
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("PATCH 404: should respond with appropriate status and error when requesting non-existent id", () => {
-//     return request(app)
-//       .patch("/api/comments/99999")
-//       .send({ inc_votes: 10 })
-//       .set("Accept", "application/json")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Resource not found");
-//       });
-//   });
-// });
+describe("/api/comments/:comment_id", () => {
+  test("PATCH 200: should return correct status and updated message", () => {
+    return request(app)
+      .patch("/api/comments/1")
+      .send({ inc_votes: 10 })
+      .set("Accept", "application/json")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const comment: CommentWithId | undefined = body.comment;
+        expect(comment).toMatchObject({
+          comment_id: 1,
+          body: "Oh, I've got compassion running out of my nose, pal! I'm the Sultan of Sentiment!",
+          votes: 26,
+          author: "butter_bridge",
+          created_at: expect.any(String),
+        });
+      });
+  });
+  test("PATCH 400: should respond with appropriate status and error when requesting invalid id", () => {
+    return request(app)
+      .patch("/api/comments/notAValidId")
+      .send({ inc_votes: 10 })
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("PATCH 400: should respond with appropriate status and error when request body has invalid key", () => {
+    return request(app)
+      .patch("/api/comments/notAValidId")
+      .send({ notValidKey: 10 })
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("PATCH 400: should respond with appropriate status and error when request body is empty", () => {
+    return request(app)
+      .patch("/api/comments/notAValidId")
+      .send({})
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("PATCH 404: should respond with appropriate status and error when requesting non-existent id", () => {
+    return request(app)
+      .patch("/api/comments/99999")
+      .send({ inc_votes: 10 })
+      .set("Accept", "application/json")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Resource not found");
+      });
+  });
+});

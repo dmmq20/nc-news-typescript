@@ -42,7 +42,9 @@ export interface Body {
   articles?: ArticleWithId[];
   article?: ArticleWithId;
   users?: User[];
+  user?: User;
   msg?: String;
-  total_count: number;
-  comments: CommentWithId[];
+  total_count?: number;
+  comments?: CommentWithId[];
+  comment?: CommentWithId;
 }
