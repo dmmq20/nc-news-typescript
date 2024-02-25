@@ -1,6 +1,6 @@
 const request = require("supertest");
 import app from "../app";
-import { Article, ArticleWithId, Body, Topic } from "../types";
+import { Article, ArticleWithId, Body, CommentWithId, Topic } from "../types";
 import { isSortedBy } from "../utils/isSortedBy";
 const seed = require("../db/seeds/seed");
 const testData = require("../db/data/test-data");
@@ -433,162 +433,181 @@ describe("/api/articles", () => {
         });
       });
   });
+  test("POST 201: should respond with appropriate status and inserted article with default article_img_url", () => {
+    const article = {
+      author: "lurker",
+      title: "test title",
+      body: "test body",
+      topic: "mitch",
+    };
+    return request(app)
+      .post("/api/articles")
+      .send(article)
+      .set("Accept", "application/json")
+      .expect(201)
+      .then(({ body }: { body: Body }) => {
+        const article: ArticleWithId | undefined = body.article;
+        expect(article).toMatchObject({
+          article_id: expect.any(Number),
+          created_at: expect.any(String),
+          comment_count: 0,
+          votes: 0,
+          author: "lurker",
+          title: "test title",
+          body: "test body",
+          topic: "mitch",
+          article_img_url:
+            "https://images.pexels.com/photos/97050/pexels-photo-97050.jpeg?w=700&h=700",
+        });
+      });
+  });
+  test("POST 404: should respond with appropriate status and msg if author not in users table", () => {
+    const article = {
+      author: "notInUsers",
+      title: "test title",
+      body: "test body",
+      topic: "mitch",
+    };
+    return request(app)
+      .post("/api/articles")
+      .send(article)
+      .set("Accept", "application/json")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Not found");
+      });
+  });
+  test("POST 400: should respond with appropriate status and msg if request body missing properties", () => {
+    const article = {
+      author: "notInUsers",
+      body: "test body",
+      topic: "mitch",
+    };
+    return request(app)
+      .post("/api/articles")
+      .send(article)
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test.only("POST 404: should respond with appropriate status and msg if topic not in topics table", () => {
+    const article = {
+      author: "notInUsers",
+      title: "test title",
+      body: "test body",
+      topic: "notInTopics",
+    };
+    return request(app)
+      .post("/api/articles")
+      .send(article)
+      .set("Accept", "application/json")
+      .expect(404)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Not found");
+      });
+  });
+  test("POST 400: should respond with appropriate status and msg if request body is empty", () => {
+    const article = {};
+    return request(app)
+      .post("/api/articles")
+      .send(article)
+      .set("Accept", "application/json")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("GET 200: should respond with correct page of results if specified with default limit of 10", () => {
+    return request(app)
+      .get("/api/articles?p=1")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const articles: ArticleWithId[] | undefined = body.articles;
+        expect(articles).toHaveLength(10);
+      });
+  });
+  test.only("GET 200: should respond with correct number of articles if limit is specified", () => {
+    return request(app)
+      .get("/api/articles?limit=5&p=1")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const articles: ArticleWithId[] | undefined = body.articles;
+        expect(articles).toHaveLength(5);
+      });
+  });
+  test("GET 200: should respond with total_count property containing correct number of articles before any limit is applied", () => {
+    return request(app)
+      .get("/api/articles?limit=5&p=1")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const articles: ArticleWithId[] | undefined = body.articles;
+        const { total_count } = body;
+        expect(articles).toHaveLength(5);
+        expect(total_count).toBe(13);
+      });
+  });
+  test("GET 200: should respond with correct total_count when filter is applied", () => {
+    return request(app)
+      .get("/api/articles?topic=cats&limit=5&p=1")
+      .expect(200)
+      .then(({ body }: { body: Body }) => {
+        const { total_count } = body;
+        expect(total_count).toBe(1);
+      });
+  });
+  test("GET 400: should respond with appropriate status and msg if page is invalid", () => {
+    return request(app)
+      .get("/api/articles?topic=cats&p=notValid&order=asc")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
+  test("GET 400: should respond with appropriate status and msg if limit is invalid", () => {
+    return request(app)
+      .get("/api/articles?topic=cats&limit=notValid&order=asc")
+      .expect(400)
+      .then(({ body }: { body: Body }) => {
+        const msg = body.msg;
+        expect(msg).toBe("Bad request");
+      });
+  });
 });
-//   test("POST 201: should respond with appropriate status and inserted article with default article_img_url", () => {
-//     const article = {
-//       author: "lurker",
-//       title: "test title",
-//       body: "test body",
-//       topic: "mitch",
-//     };
-//     return request(app)
-//       .post("/api/articles")
-//       .send(article)
-//       .set("Accept", "application/json")
-//       .expect(201)
-//       .then(({ body: { article } }) => {
-//         expect(article).toMatchObject({
-//           article_id: expect.any(Number),
-//           created_at: expect.any(String),
-//           comment_count: 0,
-//           votes: 0,
-//           author: "lurker",
-//           title: "test title",
-//           body: "test body",
-//           topic: "mitch",
-//           article_img_url:
-//             "https://images.pexels.com/photos/97050/pexels-photo-97050.jpeg?w=700&h=700",
-//         });
-//       });
-//   });
-//   test("POST 404: should respond with appropriate status and msg if author not in users table", () => {
-//     const article = {
-//       author: "notInUsers",
-//       title: "test title",
-//       body: "test body",
-//       topic: "mitch",
-//     };
-//     return request(app)
-//       .post("/api/articles")
-//       .send(article)
-//       .set("Accept", "application/json")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Not found");
-//       });
-//   });
-//   test("POST 400: should respond with appropriate status and msg if request body missing properties", () => {
-//     const article = {
-//       author: "notInUsers",
-//       body: "test body",
-//       topic: "mitch",
-//     };
-//     return request(app)
-//       .post("/api/articles")
-//       .send(article)
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("POST 404: should respond with appropriate status and msg if topic not in topics table", () => {
-//     const article = {
-//       author: "notInUsers",
-//       title: "test title",
-//       body: "test body",
-//       topic: "notInTopics",
-//     };
-//     return request(app)
-//       .post("/api/articles")
-//       .send(article)
-//       .set("Accept", "application/json")
-//       .expect(404)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Not found");
-//       });
-//   });
-//   test("POST 400: should respond with appropriate status and msg if request body is empty", () => {
-//     const article = {};
-//     return request(app)
-//       .post("/api/articles")
-//       .send(article)
-//       .set("Accept", "application/json")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("GET 200: should respond with correct page of results if specified with default limit of 10", () => {
-//     return request(app)
-//       .get("/api/articles?p=1")
-//       .expect(200)
-//       .then(({ body: { articles } }) => {
-//         expect(articles).toHaveLength(10);
-//       });
-//   });
-//   test("GET 200: should respond with correct number of articles if limit is specified", () => {
-//     return request(app)
-//       .get("/api/articles?limit=5&p=1")
-//       .expect(200)
-//       .then(({ body: { articles } }) => {
-//         expect(articles).toHaveLength(5);
-//       });
-//   });
-//   test("GET 200: should respond with total_count property containing correct number of articles before any limit is applied", () => {
-//     return request(app)
-//       .get("/api/articles?limit=5&p=1")
-//       .expect(200)
-//       .then(({ body: { articles, total_count } }) => {
-//         expect(articles).toHaveLength(5);
-//         expect(total_count).toBe(13);
-//       });
-//   });
-//   test("GET 200: should respond with correct total_count when filter is applied", () => {
-//     return request(app)
-//       .get("/api/articles?topic=cats&limit=5&p=1")
-//       .expect(200)
-//       .then(({ body: { total_count } }) => {
-//         expect(total_count).toBe(1);
-//       });
-//   });
-//   test("GET 400: should respond with appropriate status and msg if page is invalid", () => {
-//     return request(app)
-//       .get("/api/articles?topic=cats&p=notValid&order=asc")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-//   test("GET 400: should respond with appropriate status and msg if limit is invalid", () => {
-//     return request(app)
-//       .get("/api/articles?topic=cats&limit=notValid&order=asc")
-//       .expect(400)
-//       .then(({ body: { msg } }) => {
-//         expect(msg).toBe("Bad request");
-//       });
-//   });
-// });
 
-// describe("/api/articles/:article_id/comments", () => {
-//   test("GET 200: should respond with comments associated with the article_id sorted by date", () => {
-//     return request(app)
-//       .get("/api/articles/1/comments")
-//       .expect(200)
-//       .then(({ body: { comments } }) => {
-//         expect(comments.length > 0).toBe(true);
-//         comments.forEach((comment) => {
-//           expect(comment).toMatchObject({
-//             article_id: 1,
-//             comment_id: expect.any(Number),
-//             created_at: expect.any(String),
-//             author: expect.any(String),
-//             body: expect.any(String),
-//             votes: expect.any(Number),
-//           });
-//         });
-//       });
-//   });
+describe("/api/articles/:article_id/comments", () => {
+  test.only("GET 200: should respond with comments associated with the article_id sorted by date", () => {
+    return (
+      request(app)
+        .get("/api/articles/1/comments")
+        .expect(200)
+        //   .then(({ body: { comments } }) => {
+        .then(({ body }: { body: Body }) => {
+          const comments: CommentWithId[] | undefined = body.comments;
+          expect(comments.length > 0).toBe(true);
+          comments.forEach((comment) => {
+            expect(comment).toMatchObject({
+              article_id: 1,
+              comment_id: expect.any(Number),
+              created_at: expect.any(String),
+              author: expect.any(String),
+              body: expect.any(String),
+              votes: expect.any(Number),
+            });
+          });
+          expect(isSortedBy(comments, "created_at", { descending: true })).toBe(
+            true
+          );
+        })
+    );
+  });
+});
 //   test("GET 200: comments should be sorted by date", () => {
 //     return request(app)
 //       .get("/api/articles/1/comments")

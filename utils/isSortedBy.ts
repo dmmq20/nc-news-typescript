@@ -15,10 +15,10 @@ export const isSortedBy = <T, K extends keyof T>(
   sort_by: K,
   options: { descending: boolean }
 ): boolean => {
+  const { descending } = options;
   for (let i = 0; i < arr.length - 1; i++) {
     const a = arr[i][sort_by];
     const b = arr[i + 1][sort_by];
-    const { descending } = options;
     const cmp = descending ? defaultCompare(a, b) : defaultCompare(b, a);
     if (cmp === -1) return false;
   }

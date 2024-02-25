@@ -43,4 +43,6 @@ export interface Body {
   article?: ArticleWithId;
   users?: User[];
   msg?: String;
+  total_count: number;
+  comments: CommentWithId[];
 }
