@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 
 const { deleteComment, updateComment } = require("../models/comments.model");
-const { checkExists } = require("./utils");
+const { checkExists } = require("../utils/checkExists");
 
 function removeComment(req: Request, res: Response, next: NextFunction) {
   const { comment_id } = req.params;

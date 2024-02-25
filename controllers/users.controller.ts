@@ -5,7 +5,7 @@ const {
   selectAllUsers,
   selectUserByUsername,
 } = require("../models/users.model");
-const { checkExists } = require("./utils");
+const { checkExists } = require("../utils/checkExists");
 
 function getAllUsers(_req: Request, res: Response, next: NextFunction) {
   return selectAllUsers()

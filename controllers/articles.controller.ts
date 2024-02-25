@@ -10,7 +10,7 @@ const {
   insertArticle,
   deleteArticle,
 } = require("../models/articles.model");
-const { checkExists } = require("./utils");
+const { checkExists } = require("../utils/checkExists");
 
 function getArticleById(req: Request, res: Response, next: NextFunction) {
   const { article_id } = req.params;
